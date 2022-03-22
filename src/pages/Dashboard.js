@@ -40,7 +40,6 @@ function Dashboard() {
 	const [maxLevel, setMaxLevel] = useState(2);
 
 	const { user, loadingUser } = useUserChange(({ user }) => {
-		console.log(user);
 		if (user) {
 			setSheetsId(user.sheetsId);
 			setApiKey(user.apiKey);
@@ -116,7 +115,7 @@ function Dashboard() {
 						</div>
 						<div className="flex gap-2">
 							<Button onClick={() => updateData()}>Einstellungen Speichern</Button>
-							<CopyToClipboard text={`http://localhost:3000/display/${user.documentId}`}>
+							<CopyToClipboard text={`${window.location.origin}/display/${user.documentId}`}>
 								<Button>Browsersource Link kopieren</Button>
 							</CopyToClipboard>
 						</div>
@@ -178,7 +177,7 @@ function Dashboard() {
 							<iframe
 								title="Preview"
 								className="w-full h-full absolute"
-								src={`http://localhost:3000/display/${user.documentId}`}
+								src={`${window.location.origin}/display/${user.documentId}`}
 							></iframe>
 						</>
 					) : (
