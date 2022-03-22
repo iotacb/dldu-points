@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 
 import useFirebase from "../hooks/useFirebase";
-import useUser from "../hooks/useUser";
+import { useUserChange } from "../hooks/useUser";
 
 import Backdrop from "../components/Backdrop";
 import TextInput from "../components/TextInput";
@@ -18,14 +18,9 @@ import darkSoulsImage from "../assets/images/darksouls.jpg";
 
 function Dashboard() {
 	const nav = useNavigate();
-	const { setUser, user, query, collection, setDoc, where, getDocs, firestore, getDoc, doc, signOut, auth } =
-		useFirebase();
-	const { uid } = useParams();
-	const [userData, setUserData] = useState({});
+	const { setDoc, firestore, doc, signOut, auth } = useFirebase();
 
 	const [showLoading, setShowLoading] = useState();
-
-	const [userID, setUserID] = useState("");
 	const [sheetsId, setSheetsId] = useState("");
 	const [apiKey, setApiKey] = useState("");
 
@@ -44,82 +39,41 @@ function Dashboard() {
 	const [spacing, setSpacing] = useState(0);
 	const [maxLevel, setMaxLevel] = useState(2);
 
-	const { loadingUser } = useUser(({ user }) => {
+	const { user, loadingUser } = useUserChange(({ user }) => {
+		console.log(user);
 		if (user) {
-			setUser(user);
+			setSheetsId(user.sheetsId);
+			setApiKey(user.apiKey);
 		} else {
 			nav("/register");
 		}
 	});
 
-	const getID = async (user) => {
-		const q = query(collection(firestore, "users"), where("uid", "==", user.uid));
-		const docSnap = await getDocs(q);
+	const updateData = async () => {
+		if (user && user.documentId) {
+			setShowLoading(true);
 
-		if (docSnap.docs.length > 0) {
-			return docSnap.docs[0].id;
-		}
-		return "";
-	};
-
-	useEffect(() => {
-		if (user) {
-			if (uid === undefined) {
-				getID(user).then((id) => {
-					setUserID(id);
-				});
-			} else {
-				setUserID(uid);
+			if (sheetsId.length !== 44) {
+				// TODO: SHOW MESSAGE FOR EMPTY ID
+				setShowLoading(false);
 			}
-		}
-		// eslint-disable-next-line
-	}, [user]);
 
-	useEffect(() => {
-		if (userID) {
-			const data = getData(userID);
-			data.then((result) => {
-				setUserData(result);
-				setSheetsId(result.sheetsId);
-				setApiKey(result.apiKey);
+			await setDoc(doc(firestore, "users", user.documentId), {
+				...user,
+				sheetsId,
+				apiKey,
+				config: {
+					...user.config,
+					color: `rgb(${fontColor.r} ${fontColor.g} ${fontColor.b})`,
+					backgroundColor: `rgba(${backgroundColor.r} ${backgroundColor.g} ${backgroundColor.b} / ${backgroundColor.a})`,
+					textAlign: position,
+					spacing: spacing,
+					maxLevel: maxLevel,
+				},
 			});
+
+			setShowLoading(false);
 		}
-		// eslint-disable-next-line
-	}, [userID]);
-
-	const getData = async (uid) => {
-		const docRef = doc(firestore, "users", uid);
-		const docSnap = await getDoc(docRef);
-
-		if (docSnap.exists()) {
-			return docSnap.data();
-		}
-		return {};
-	};
-
-	const updateData = async (uid, data) => {
-		setShowLoading(true);
-
-		if (sheetsId.length !== 39) {
-			setShowLoading(false)
-		}
-
-		// ignore warning
-		// eslint-disable-next-line
-		const dr = await setDoc(doc(firestore, "users", uid), {
-			...data,
-			sheetsId,
-			apiKey,
-			config: {
-				...data.config,
-				color: `rgb(${fontColor.r} ${fontColor.g} ${fontColor.b})`,
-				backgroundColor: `rgba(${backgroundColor.r} ${backgroundColor.g} ${backgroundColor.b} / ${backgroundColor.a})`,
-				textAlign: position,
-				spacing: spacing,
-				maxLevel: maxLevel
-			},
-		});
-		setShowLoading(false);
 	};
 
 	const logout = () => {
@@ -161,8 +115,8 @@ function Dashboard() {
 							</CopyToClipboard>
 						</div>
 						<div className="flex gap-2">
-							<Button onClick={() => updateData(userID, userData)}>Einstellungen Speichern</Button>
-							<CopyToClipboard text={`http://localhost:3000/display/${uid}`}>
+							<Button onClick={() => updateData()}>Einstellungen Speichern</Button>
+							<CopyToClipboard text={`http://localhost:3000/display/${user.documentId}`}>
 								<Button>Browsersource Link kopieren</Button>
 							</CopyToClipboard>
 						</div>
@@ -207,7 +161,7 @@ function Dashboard() {
 							</div>
 						</div>
 						<div className="flex gap-2">
-							<Button onClick={() => updateData(userID, userData)}>Einstellungen Speichern</Button>
+							<Button onClick={() => updateData()}>Einstellungen Speichern</Button>
 						</div>
 					</div>
 					<div className="flex flex-col gap-4 w-1/2"></div>
@@ -218,12 +172,21 @@ function Dashboard() {
 			title: "Preview",
 			content: (
 				<div className="relative flex flex-col w-full h-full justify-center items-center">
-					<img alt="dark souls game preview" className="w-full h-full absolute object-cover" src={darkSoulsImage} />
-					<iframe
-						title="Preview"
-						className="w-full h-full absolute"
-						src="http://localhost:3000/display/zCsLJUJ59gdCGUQKvezU"
-					></iframe>
+					{user && user.documentId && user.sheetsId ? (
+						<>
+							<img alt="dark souls game preview" className="w-full h-full absolute object-cover" src={darkSoulsImage} />
+							<iframe
+								title="Preview"
+								className="w-full h-full absolute"
+								src={`http://localhost:3000/display/${user.documentId}`}
+							></iframe>
+						</>
+					) : (
+						<div className="p-4 flex flex-col w-full h-full justify-center items-center">
+							<p className="text-4xl">Keine Google Sheet Id</p>
+							<p>Du musst erst eine Google Sheet Id in deinen Einstellungen hinzufügen.</p>
+						</div>
+					)}
 				</div>
 			),
 		},
@@ -251,7 +214,10 @@ function Dashboard() {
 					</div>
 					<p className="opacity-20">DLDU-Points v1.0</p>
 				</div>
-				{pages && pages.map((page, index) => <Fragment key={index}>{selectedPage.title === page.title ? <>{page.content}</> : <></>}</Fragment>)}
+				{pages &&
+					pages.map((page, index) => (
+						<Fragment key={index}>{selectedPage.title === page.title ? <>{page.content}</> : <></>}</Fragment>
+					))}
 			</div>
 			<Backdrop isLoader visible={loadingUser || showLoading} />
 		</div>

@@ -1,7 +1,7 @@
 import React from "react";
 
 import useFirebase from "../hooks/useFirebase";
-import useUser from "../hooks/useUser";
+import { useUserChange } from "../hooks/useUser";
 
 import { useNavigate } from "react-router-dom";
 
@@ -9,43 +9,26 @@ import Backdrop from "../components/Backdrop";
 import Button from "../components/Button";
 
 function Register() {
-	const {
-		signInWithRedirect,
-		collection,
-		where,
-		query,
-		auth,
-		provider,
-		firestore,
-		addDoc,
-		getDocs,
-	} = useFirebase();
+	const { signInWithRedirect, collection, where, query, auth, provider, firestore, addDoc, getDocs } = useFirebase();
 
 	const nav = useNavigate();
 
-	const { loadingUser } = useUser(({ user }) => {
+	const { loadingUser } = useUserChange(({ user }) => {
 		if (user) {
-			registerUser(user);
-		} else {
+			checkAndRegisterUser(user);
 		}
 	});
 
-	const registerUser = async (user) => {
-		if (user) {
-			const q = query(collection(firestore, "users"), where("uid", "==", user.uid));
-			const docSnap = await getDocs(q);
-
-			if (docSnap.docs.length === 0) {
-				const dr = await addDoc(collection(firestore, "users"), {
-					email: user.email,
-					uid: user.uid,
-					apiKey: process.env.REACT_APP_API_KEY
-				});
-				if (dr) {
-					nav(`/dashboard/${dr.id}`);
-				}
-			} else {
-				nav(`/dashboard/${docSnap.docs[0].id}`);
+	const checkAndRegisterUser = async (user) => {
+		if (user && user.documentId) {
+			nav(`/dashboard`);
+		} else {
+			const createdDoc = await addDoc(collection(firestore, "users"), {
+				userId: user.userId,
+				apiKey: process.env.REACT_APP_API_KEY,
+			});
+			if (createdDoc) {
+				nav(`/dashboard`);
 			}
 		}
 	};

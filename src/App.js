@@ -1,11 +1,14 @@
 import Router from "./Router";
 
 import { FirebaseProvider } from "./context/FirebaseContext";
+import { UserProvider } from "./context/UserContext";
 
 function App() {
 	return (
 		<FirebaseProvider>
-			<Router />
+			<UserProvider>
+				<Router />
+			</UserProvider>
 		</FirebaseProvider>
 	);
 }
