@@ -11,6 +11,7 @@ import Backdrop from "../components/Backdrop";
 import TextInput from "../components/TextInput";
 import Button from "../components/Button";
 import NumberPicker from "../components/NumberPicker";
+import Checkbox from "../components/Checkbox";
 
 import { ChromePicker } from "react-color";
 
@@ -35,9 +36,12 @@ function Dashboard() {
 		b: 0,
 		a: 0,
 	});
-	const [position, setPosition] = useState("left");
-	const [spacing, setSpacing] = useState(0);
+	const [position, setPosition] = useState("right");
+	const [spacing, setSpacing] = useState(2);
 	const [maxLevel, setMaxLevel] = useState(2);
+	const [showSpacer, setShowSpacer] = useState(true);
+	const [usePoints, setUsePoints] = useState(true);
+	const [colorBeaten, setColorBeaten] = useState(true);
 
 	const { user, loadingUser } = useUserChange(({ user }) => {
 		if (user) {
@@ -51,8 +55,11 @@ function Dashboard() {
 	const updateData = async () => {
 		if (user && user.documentId) {
 			setShowLoading(true);
+			console.log("ff");
 
-			if (sheetsId.length !== 44) {
+			console.log(sheetsId, sheetsId.length);
+
+			if (sheetsId.length < 44) {
 				// TODO: SHOW MESSAGE FOR EMPTY ID
 				setShowLoading(false);
 			}
@@ -68,6 +75,9 @@ function Dashboard() {
 					textAlign: position,
 					spacing: spacing,
 					maxLevel: maxLevel,
+					showSpacer: showSpacer,
+					usePoints: usePoints,
+					colorBeaten: colorBeaten,
 				},
 			});
 
@@ -77,6 +87,13 @@ function Dashboard() {
 
 	const logout = () => {
 		signOut(auth);
+	};
+
+	const formatSheetsId = (value) => {
+		if (value.startsWith("http")) {
+			return value.split("/")[5];
+		}
+		return value;
 	};
 
 	const pages = [
@@ -98,8 +115,8 @@ function Dashboard() {
 						<TextInput
 							className="w-full"
 							value={sheetsId}
-							onChange={(e) => setSheetsId(e.target.value)}
-							label="Google Sheets ID"
+							onChange={(e) => setSheetsId(formatSheetsId(e.target.value))}
+							label="Google Sheets ID oder Link"
 						/>
 						<div className="flex">
 							<TextInput
@@ -114,8 +131,12 @@ function Dashboard() {
 							</CopyToClipboard>
 						</div>
 						<div className="flex gap-2">
-							<Button onClick={() => updateData()}>Einstellungen Speichern</Button>
-							<CopyToClipboard text={`${window.location.origin}/display/${user.documentId}`}>
+							<Button onClick={() => updateData()}>
+								Einstellungen Speichern
+							</Button>
+							<CopyToClipboard
+								text={`${window.location.origin}/display/${user.documentId}`}
+							>
 								<Button>Browsersource Link kopieren</Button>
 							</CopyToClipboard>
 						</div>
@@ -134,33 +155,66 @@ function Dashboard() {
 				<div className="p-4 flex flex-col gap-4 w-full h-full">
 					<div className="flex flex-col px-6 py-4 bg-gray-600 rounded-md gap-4 w-1/2 shadow-sm">
 						<p>Designs Einstellungen:</p>
-						<div className="flex flex-wrap gap-4">
+						<div className="flex flex-wrap gap-4 mb-8">
 							<div>
 								<p>Schriftfarbe:</p>
-								<ChromePicker color={fontColor} onChange={(v) => setFontColor(v.rgb)} />
+								<ChromePicker
+									color={fontColor}
+									onChange={(v) => setFontColor(v.rgb)}
+								/>
 							</div>
 							<div>
 								<p>Hintergrund Farbe:</p>
-								<ChromePicker color={backgroundColor} onChange={(v) => setBackgroundColor(v.rgb)} />
+								<ChromePicker
+									color={backgroundColor}
+									onChange={(v) => setBackgroundColor(v.rgb)}
+								/>
 							</div>
-							<NumberPicker value={spacing} onChange={(e) => setSpacing(e.target.value)} label="Zeilen Abstand:" />
-							<NumberPicker value={maxLevel} onChange={(e) => setMaxLevel(e.target.value)} label="Maximale Level:" />
-							<div>
-								<label htmlFor="position">Position</label>
-								<select
-									onChange={(e) => setPosition(e.target.value)}
-									value={position}
-									id="position"
-									name="position"
-									className="bg-gray-500 px-4 py-2 outline-none w-full"
-								>
-									<option value="left">Links</option>
-									<option value="right">Rechts</option>
-								</select>
+							<div className="flex flex-col gap-2">
+								<NumberPicker
+									value={spacing}
+									onChange={(e) => setSpacing(e.target.value)}
+									label="Zeilen Abstand:"
+								/>
+								<NumberPicker
+									value={maxLevel}
+									onChange={(e) => setMaxLevel(e.target.value)}
+									label="Maximale Level:"
+								/>
+								<div>
+									<label htmlFor="position">Position:</label>
+									<select
+										onChange={(e) => setPosition(e.target.value)}
+										value={position}
+										id="position"
+										name="position"
+										className="bg-gray-500 px-2 py-2 outline-none w-full"
+									>
+										<option value="left">Links</option>
+										<option value="right">Rechts</option>
+									</select>
+								</div>
 							</div>
+							<Checkbox
+								onChange={(e) => setShowSpacer(e)}
+								label="Trennlinien anzeigen:"
+								value={showSpacer}
+							/>
+							<Checkbox
+								onChange={(e) => setUsePoints(e)}
+								label="Punkte verwenden:"
+								value={usePoints}
+							/>
+							<Checkbox
+								onChange={(e) => setColorBeaten(e)}
+								label="Besiegte Bosse Farblich kennzeichen:"
+								value={colorBeaten}
+							/>
 						</div>
 						<div className="flex gap-2">
-							<Button onClick={() => updateData()}>Einstellungen Speichern</Button>
+							<Button onClick={() => updateData()}>
+								Einstellungen Speichern
+							</Button>
 						</div>
 					</div>
 					<div className="flex flex-col gap-4 w-1/2"></div>
@@ -173,7 +227,11 @@ function Dashboard() {
 				<div className="relative flex flex-col w-full h-full justify-center items-center">
 					{user && user.documentId && user.sheetsId ? (
 						<>
-							<img alt="dark souls game preview" className="w-full h-full absolute object-cover" src={darkSoulsImage} />
+							<img
+								alt="dark souls game preview"
+								className="w-full h-full absolute object-cover"
+								src={darkSoulsImage}
+							/>
 							<iframe
 								title="Preview"
 								className="w-full h-full absolute"
@@ -183,7 +241,10 @@ function Dashboard() {
 					) : (
 						<div className="p-4 flex flex-col w-full h-full justify-center items-center">
 							<p className="text-4xl">Keine Google Sheet Id</p>
-							<p>Du musst erst eine Google Sheet Id in deinen Einstellungen hinzufügen.</p>
+							<p>
+								Du musst erst eine Google Sheet Id in deinen Einstellungen
+								hinzufügen.
+							</p>
 						</div>
 					)}
 				</div>
@@ -200,7 +261,11 @@ function Dashboard() {
 							pages.map((page, i) => (
 								<p
 									key={i}
-									onClick={() => (page.onClick === undefined ? setSelectedPage(page) : page.onClick())}
+									onClick={() =>
+										page.onClick === undefined
+											? setSelectedPage(page)
+											: page.onClick()
+									}
 									className={`${
 										selectedPage.title === page.title
 											? "bg-gray-500 hover:bg-gray-400"
@@ -215,7 +280,9 @@ function Dashboard() {
 				</div>
 				{pages &&
 					pages.map((page, index) => (
-						<Fragment key={index}>{selectedPage.title === page.title ? <>{page.content}</> : <></>}</Fragment>
+						<Fragment key={index}>
+							{selectedPage.title === page.title ? <>{page.content}</> : <></>}
+						</Fragment>
 					))}
 			</div>
 			<Backdrop isLoader visible={loadingUser || showLoading} />
